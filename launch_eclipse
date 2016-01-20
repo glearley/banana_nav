@@ -2,4 +2,4 @@
 
 #Launching ROS sourced instance of Eclpise
 
-bash -i -c "/opt/eclipse/./eclipse" &
+bash -i -c "/opt/eclipse/./eclipse"
