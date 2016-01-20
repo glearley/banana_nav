@@ -1,0 +1,5 @@
+#!/bin/sh
+
+printf("\nLaunching ROS sourced instance of Eclpise...")
+
+bash -i -c "/opt/eclipse/./eclipse" &
