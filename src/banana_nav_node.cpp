@@ -11,6 +11,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 #include <sstream>
+#include <iostream>
 using namespace std;
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
@@ -26,8 +27,22 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 	//Rate that the goals are sent
 	ros::Rate goal_rate(10);
 	char *p;
-	int field_length = strtol(argv[1],&p,10); 
-	int field_width = strtol(argv[2],&p,10);
+	long field_length;
+	long field_width;
+	if(argc == 1)
+	{
+	field_length = 5;
+	field_width = 5;
+	}
+	else if(argc == 2){
+	field_length = strtol(argv[1],&p,10);
+	field_width = 5;
+	}
+	else if(argc == 3)
+	{
+	field_length = strtol(argv[1],&p,10); 
+	field_width = strtol(argv[2],&p,10);
+	}	
 	ROS_INFO("The field length is %d ",field_length);
 	ROS_INFO("The field width is %d ",field_width);
 	//tell the action client that we want to spin a thread by default
@@ -40,7 +55,8 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 
 	move_base_msgs::MoveBaseGoal goal;
 	//Simple test goal move robot 1/10 meter forward
-	goal.target_pose.header.frame_id = "J5";
+// [ERROR]: The goal pose passed to this planner must be in the map frame.  It is instead in the j5 frame.
+	goal.target_pose.header.frame_id = "map";
 	goal.target_pose.header.stamp = ros::Time::now();
 	goal.target_pose.pose.position.x = 0.1;
 	goal.target_pose.pose.orientation.w = 1;
