@@ -189,5 +189,5 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 #target_link_libraries(banana_nav ${catkin_LIBRARIES})
-add_executable(banana_nav src/banana_nav_node.cpp)
-target_link_libraries(banana_nav ${catkin_LIBRARIES})
+add_executable(banana_nav_node src/banana_nav_node.cpp)
+target_link_libraries(banana_nav_node ${catkin_LIBRARIES})
