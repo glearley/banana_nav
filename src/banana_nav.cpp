@@ -53,13 +53,16 @@
 //	return 0;
 //}
 #include "ros/ros.h"
-#include <costmap_2d/costmap_2d_ros.h>
-#include "banana_nav.h"
+#include <banana_nav/banana_nav.h>
+#include "std_msgs/String.h"
+#include <nav_msgs/OccupancyGrid.h>
 
-typedef nav_msgs::OccupancyGrid occupancyGrid;
+using namespace std;
+typedef std::vector<int8_t> int8;
+
 
 //include the costmap dependencies whenever I find that shiz
-bool FindGoal(Goal currentGoal,occupancyGrid map, int m_x,int m_y){
+bool FindGoal(Goal currentGoal,int8 map, int m_x,int m_y){
 
 	int maxHeight = m_y;
 	int maxWidth = m_x;
@@ -84,6 +87,7 @@ bool FindGoal(Goal currentGoal,occupancyGrid map, int m_x,int m_y){
 		for(width = halfWidth; width>=0;width--) {
 			if(width<halfWidth){
 				LTcost = GetCost(width,height,map, maxWidth, maxHeight);
+//add in check if index is outside of map/////////////////////////////////////////////////////////////////////////////////////
 				if ((LTcost == 100) && (LTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
 					LTtrigger = true;
 					LTLocatedHeight = height;
@@ -106,8 +110,8 @@ bool FindGoal(Goal currentGoal,occupancyGrid map, int m_x,int m_y){
 	}
 	//Return false if no trees and set goal to null
 	if((RTtrigger&&LTtrigger)!= true){//Check if there are no trees
-		currentGoal.y = NULL;
-		currentGoal.x = NULL;
+		currentGoal.y = 0;
+		currentGoal.x = 0;
 		return false;
 	}
 	//Return true, we have found two trees and have a goal
@@ -137,22 +141,22 @@ bool FindGoal(Goal currentGoal,occupancyGrid map, int m_x,int m_y){
 //////////////////////////////////////Get Cost//////////////////////////////////////////////////////////////////////////
 
 //function to get cost from occupancy grid given coordinates
-int GetCost(int x,int y,occupancyGrid map, int max_x,int max_y)
+int GetCost(int x,int y,int8 map, int max_x,int max_y)
 {
 	int index = GetIndex(x,y,max_x,max_y);
-	//return null if index is outside of range
-	if(index == NULL) return NULL;
+	//return -10 if index is outside of range
+	if(index == -1) return -10;
 	else return map[index];
 }
 
 ///////////////////////////////////////////////////////Get Index//////////////////////////////////////////////////////////////////
 
 //function to get index from occupancy grid given coordinates
-int GetIndex(int x,int y, int max_x,int max_y,)
+int GetIndex(int x,int y, int max_x,int max_y)
 {
 	int index = 0;
-	//return null if index is outside of range
-	if((y > max_y) || (x > max_x)) return NULL;
+	//return -1 if index is outside of range
+	if((y > max_y) || (x > max_x)) return -1;
 	//use number of rows minus 1 times the width of a row + the x coordinate to get the index
 	else index = ((y-1)*max_x)+x;
 	return index;
@@ -164,7 +168,7 @@ int GetIndex(int x,int y, int max_x,int max_y,)
 
 
 //determines and gives the location of the next spot to look for trees
-bool FindRow(Goal currentGoal,occupancyGrid map, int m_x,int m_y, bool direction)
+bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction)
 {
 	int maxHeight = m_y;
 	int maxWidth = m_x;
@@ -207,8 +211,8 @@ bool FindRow(Goal currentGoal,occupancyGrid map, int m_x,int m_y, bool direction
 		}
 		if(RTtrigger == false){
 			//No tree found error
-			currentGoal.x = NULL;
-			currentGoal.y = NULL;
+			currentGoal.x = 0;
+			currentGoal.y = 0;
 			return false;
 		}
 		else{
@@ -237,8 +241,8 @@ bool FindRow(Goal currentGoal,occupancyGrid map, int m_x,int m_y, bool direction
 		}
 		if(LTtrigger == false){
 			//No tree found Error
-			currentGoal.x = NULL;
-			currentGoal.y = NULL;
+			currentGoal.x = 0;
+			currentGoal.y = 0;
 			return false;
 		}
 		else{
@@ -263,7 +267,7 @@ bool FindRow(Goal currentGoal,occupancyGrid map, int m_x,int m_y, bool direction
 //////////////////////////////////////////////////Check if Done/////////////////////////////////////////////////////////////////////
 
 //determines if we are done and need to return to base
-bool CheckifDone(occupancyGrid map, int m_x,int m_y){
+bool CheckifDone(int8 map, int m_x,int m_y){
 
 	int maxHeight = m_y;
 	int maxWidth = m_x;

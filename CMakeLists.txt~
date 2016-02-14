@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   actionlib
   move_base_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -117,6 +118,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+include
 )
 
 ## Declare a C++ library
@@ -164,9 +166,9 @@ include_directories(
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#  FILES_MATCHING PATTERN "*.h"
+#  PATTERN ".svn" EXCLUDE
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
@@ -190,4 +192,6 @@ include_directories(
 # catkin_add_nosetests(test)
 #target_link_libraries(banana_nav ${catkin_LIBRARIES})
 add_executable(banana_nav_node src/banana_nav_node.cpp)
+add_library(banana_nav src/banana_nav.cpp)
 target_link_libraries(banana_nav_node ${catkin_LIBRARIES})
+

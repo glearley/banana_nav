@@ -7,12 +7,12 @@
 //==============================================================================
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-#include "banana_nav.h"
+#include <banana_nav/banana_nav.h>
 #include <stdlib.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <move_base/move_base.h>
 #include <actionlib/client/simple_action_client.h>
-#include <costmap_2d/costmap_2d_ros.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <math.h>
 #include <sstream>
 #include <iostream>
@@ -34,13 +34,13 @@ int main(int argc, char** argv) {
 	//Used as a constructor and destructor of ROS nodes
 	ros::NodeHandle banana_nav;
 	//Object that allow banana_nav to publish
-	ros::Publisher goal_pub = banana_nav.advertise<std_msgs::String>("goal", 1000);
+	//ros::Publisher goal_pub = banana_nav.advertise<std_msgs::String>("goal", 1000);
 	//Object that allow banana_nav to
 	ros::Subscriber subOGrid = banana_nav.subscribe("move_base/local_costmap/costmap_update",1000,costmapcallback);
 	//Rate that the goals are sent
 	ros::Rate goal_rate(10);
 	//custom message type to get goal from function
-	Goal currentGoal;
+	Goal currentGoal(0,0,true);
 	//message type to send goal to move_base
 	move_base_msgs::MoveBaseGoal goal;
 	//checks if there is an error in converting string to long
@@ -57,26 +57,30 @@ int main(int argc, char** argv) {
 
 ////////////////////////////////Take in inputs or go to defaults///////////////////////////////////////////////
 	//if-else statements are there if no inputs are given and implements default values
-	if(argc == 1)
+	/*if(argc == 1)
 	{
 		//use base_local param file if no inputs are given/////////////////////////////////////////////
 		//banana_nav.getParam("field_length",field_length);
 		//banana_nav.getParam("field_width",field_width);
-		field_length = 6;
-		field_width = 6;
+		//obtain size of map from costmap
+		field_length = global_map.info.height;
+		field_width = global_map.info.width;
 	}
 	else if(argc == 2){
 		field_length = strtol(argv[1],&p,10);
+
 		//banana_nav.getParam("field_width",field_width);
-		field_width = 6;
+		field_width = global_map.info.width;
 	}
 	else if(argc == 3)
 	{
 		field_length = strtol(argv[1],&p,10);
 		field_width = strtol(argv[2],&p,10);
-	}	
-	ROS_INFO("The field length is %ld",field_length);
-	ROS_INFO("The field width is %ld",field_width);
+	}	*/
+	field_length = global_map.info.height;
+	field_width = global_map.info.width;
+	ROS_INFO("The field length is %d",field_length);
+	ROS_INFO("The field width is %d",field_width);
 	//tell the action client that we want to spin a thread by default
 	MoveBaseClient ac("move_base",true);
 	//wait for the action server to come up
@@ -84,8 +88,11 @@ int main(int argc, char** argv) {
 	{
 		ROS_INFO("Waiting for the move_base action server to come up");
 	}
+
+
 	//Move the base_link to the fond goal
 	//initial check for trees
+
 	while(~done){
 		switch(endofRow){
 
@@ -93,7 +100,7 @@ int main(int argc, char** argv) {
 
 		//Base_link is currently on a row
 		case false:
-			endofRow = ~FindGoal(currentGoal,global_map,field_length,field_width);
+			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width);
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
 			goal.target_pose.header.stamp = ros::Time::now();
@@ -116,12 +123,12 @@ int main(int argc, char** argv) {
 				done = true;
 				return 0;
 			}
-			endofRow = ~FindGoal(currentGoal,global_map,field_length,field_width);
+			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width);
 			break;
 			//////////////////////////////Find Next Row////////////////////////////////////////////////////////////////////////////////
 			//Need to find next row
 		case true:
-			FindRow(currentGoal,global_map,field_length,field_width,direction);
+			FindRow(currentGoal,global_map.data,field_length,field_width,direction);
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
 			goal.target_pose.header.stamp = ros::Time::now();
@@ -130,10 +137,19 @@ int main(int argc, char** argv) {
 			goal.target_pose.pose.position.x = currentGoal.x;
 			goal.target_pose.pose.position.y = currentGoal.y;
 			//Turns base_link around to look for trees depending on direction
-			if(currentGoal.orientation)
+			if(currentGoal.orientation){
 			//Need to check if this works*********************************************
-			goal.target_pose.pose.orientation = tf::createQuaternionFromYaw(M_PI);
-			else goal.target_pose.pose.orientation = tf::createQuaternionFromYaw(0);
+			goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(M_PI).getX();
+			goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(M_PI).getY();
+			goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(M_PI).getZ();
+			goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(M_PI).getW();
+			}
+			else {
+				goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
+				goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
+				goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
+				goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
+			}
 			ROS_INFO("Sending goal x = %f and y = %f and orientation is %b",currentGoal.x,currentGoal.y,currentGoal.orientation);
 			//send goal to move_base
 			ac.sendGoal(goal);
@@ -151,7 +167,7 @@ int main(int argc, char** argv) {
 				return 0;
 				break;
 			}
-			done = CheckifDone( global_map, field_length, field_width);
+			done = CheckifDone( global_map.data, field_length, field_width);
 			break;
 		default:
 			//Should never get to default case
@@ -168,7 +184,10 @@ int main(int argc, char** argv) {
 	//set the goals position
 	goal.target_pose.pose.position.x = 0;
 	goal.target_pose.pose.position.y = 0;
-	goal.target_pose.pose.orientation = tf::createQuaternionFromYaw(0);
+	goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
+	goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
+	goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
+	goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
 	ROS_INFO("Sending goal x = %d and y = %d and orientation is front",0,0);
 	//send goal to move_base
 	ac.sendGoal(goal);
@@ -184,4 +203,5 @@ int main(int argc, char** argv) {
 	}
 	return 0;
 }
+
 
