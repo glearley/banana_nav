@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav.cpp
 // Author      : Gabriel Earley
-// Version     : #2.0
+// Version     : #1.0
 // Copyright   : Your copyright notice
 // Description : banana_nav_node
 //==============================================================================
@@ -45,7 +45,6 @@ int main(int argc, char** argv) {
 	move_base_msgs::MoveBaseGoal goal;
 	//checks if there is an error in converting string to long
 	char *p;
-<<<<<<< HEAD
 	//Set to true if we are at the end of the row and need to find new row
 	bool endofRow = false;
 	//Set to true if we have reached the end of the banana field
@@ -59,11 +58,6 @@ int main(int argc, char** argv) {
 ////////////////////////////////Take in inputs or go to defaults///////////////////////////////////////////////
 	//if-else statements are there if no inputs are given and implements default values
 	if(argc == 1)
-=======
-	long field_length;
-	long field_width;
-	if(argc == 2)
->>>>>>> d2117246b84681fc2c411cbc931b6d50ebb004e2
 	{
 		//use base_local param file if no inputs are given/////////////////////////////////////////////
 		//banana_nav.getParam("field_length",field_length);
@@ -71,32 +65,18 @@ int main(int argc, char** argv) {
 		field_length = 6;
 		field_width = 6;
 	}
-<<<<<<< HEAD
 	else if(argc == 2){
 		field_length = strtol(argv[1],&p,10);
 		//banana_nav.getParam("field_width",field_width);
 		field_width = 6;
-=======
-	else if(argc == 3){
-	field_length = strtol(argv[2],&p,10);
-	field_width = 5;
->>>>>>> d2117246b84681fc2c411cbc931b6d50ebb004e2
 	}
-	else if(argc == 4)
+	else if(argc == 3)
 	{
-<<<<<<< HEAD
 		field_length = strtol(argv[1],&p,10);
 		field_width = strtol(argv[2],&p,10);
 	}	
 	ROS_INFO("The field length is %ld",field_length);
 	ROS_INFO("The field width is %ld",field_width);
-=======
-	field_length = strtol(argv[2],&p,10); 
-	field_width = strtol(argv[3],&p,10);
-	}	
-	ROS_INFO("The field length is %ld ",field_length);
-	ROS_INFO("The field width is %ld ",field_width);
->>>>>>> d2117246b84681fc2c411cbc931b6d50ebb004e2
 	//tell the action client that we want to spin a thread by default
 	MoveBaseClient ac("move_base",true);
 	//wait for the action server to come up
@@ -180,7 +160,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-<<<<<<< HEAD
 	///////////////////////////////////Return Home/////////////////////////////////////////////////
 
 	//Use map frame so you can return to home
@@ -192,24 +171,6 @@ int main(int argc, char** argv) {
 	goal.target_pose.pose.orientation = tf::createQuaternionFromYaw(0);
 	ROS_INFO("Sending goal x = %d and y = %d and orientation is front",0,0);
 	//send goal to move_base
-=======
-	move_base_msgs::MoveBaseGoal goal;
-	//Simple test goal move robot 1/10 meter forward
-// [ERROR]: The goal pose passed to this planner must be in the map frame.  It is instead in the j5 frame.
-	goal.target_pose.header.frame_id = "base_link";
-	goal.target_pose.header.stamp = ros::Time::now();
-	goal.target_pose.pose.position.x = strtol(argv[1],&p,10);
-	goal.target_pose.pose.position.y = 0;
-	goal.target_pose.pose.position.z = 0;
-	goal.target_pose.pose.orientation.x = 0;
-	goal.target_pose.pose.orientation.y = 0;
-	goal.target_pose.pose.orientation.z = 0;
-	if(strtol(argv[1],&p,10) < 0)	
-	goal.target_pose.pose.orientation.w = 1;
-	else goal.target_pose.pose.orientation.w = 1;
-
-	ROS_INFO("Sending goal");
->>>>>>> d2117246b84681fc2c411cbc931b6d50ebb004e2
 	ac.sendGoal(goal);
 	//Wait for goal to be completed
 	ac.waitForResult();
