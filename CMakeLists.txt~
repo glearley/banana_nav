@@ -193,5 +193,5 @@ include
 #target_link_libraries(banana_nav ${catkin_LIBRARIES})
 add_executable(banana_nav_node src/banana_nav_node.cpp)
 add_library(banana_nav src/banana_nav.cpp)
-target_link_libraries(banana_nav_node ${catkin_LIBRARIES})
+target_link_libraries(banana_nav_node banana_nav ${catkin_LIBRARIES})
 

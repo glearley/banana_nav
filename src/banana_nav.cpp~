@@ -152,7 +152,7 @@ int GetCost(int x,int y,int8 map, int max_x,int max_y)
 ///////////////////////////////////////////////////////Get Index//////////////////////////////////////////////////////////////////
 
 //function to get index from occupancy grid given coordinates
-int GetIndex(int x,int y, int max_x,int max_y,)
+int GetIndex(int x,int y, int max_x,int max_y)
 {
 	int index = 0;
 	//return -1 if index is outside of range
