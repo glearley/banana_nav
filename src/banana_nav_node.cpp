@@ -34,7 +34,7 @@ occupancyGrid global_map;
 
 
 //function needed to read variables from topic
-void costmapcallback(occupancyGrid costmap){
+void costmapcallback(const occupancyGrid &costmap){
 	global_map = costmap; //Sets local occupancy grid from move_base to use able global one
 }
 
@@ -47,14 +47,20 @@ int main(int argc, char** argv) {
 	ros::init(argc,argv,"banana_nav");//initializes node
 	ros::NodeHandle banana_nav;	//Used as a constructor and destructor of ROS nodes
 
+	//tell the action client that we want to spin a thread by default
+	MoveBaseClient ac("move_base",true);
+
+	//wait for the action server to come up
+	while(!ac.waitForServer(ros::Duration(5.0)))
+	{
+		ROS_INFO("Waiting for the move_base action server to come up");
+	}
+
 	//Object that allow banana_nav to publish to topic if necessary
 	//ros::Publisher goal_pub = banana_nav.advertise<std_msgs::String>("goal", 1000);
 
 	//Object that allow banana_nav to subscribe to move_bases local_costmap topic
-	//Might need to change this to move_base/local_costmap/costmap if we encounter errors
-	ros::Subscriber subOGrid = banana_nav.subscribe("move_base/local_costmap/costmap_update",1000,costmapcallback);
-
-	ros::Rate goal_rate(10); //Rate that the goals are sent
+	ros::Subscriber subOGrid = banana_nav.subscribe("move_base/local_costmap/costmap",1000,costmapcallback);
 
 	Goal currentGoal(0,0,true); //custom message type to get goal from function
 
@@ -97,23 +103,24 @@ int main(int argc, char** argv) {
 		field_width = strtol(argv[2],&p,10);
 	}	*/
 
+	//Set the max length and width of the map based on info from the occupancy grid
+	field_length = global_map.info.height;
+	field_width = global_map.info.width;
+
+
+	//Wait for Map to be Created
+	while(field_length == 0 || field_width == 0){
 
 	//Set the max length and width of the map based on info from the occupancy grid
 	field_length = global_map.info.height;
 	field_width = global_map.info.width;
 
+
+	ROS_INFO("Error Error NO Map Received"); //No map received error message
+	}
 	//Print out the size of the occupancy grid to see if it makes sense
 	ROS_INFO("The field length is %d",field_length);
 	ROS_INFO("The field width is %d",field_width);
-
-	//tell the action client that we want to spin a thread by default
-	MoveBaseClient ac("move_base",true);
-
-	//wait for the action server to come up
-	while(!ac.waitForServer(ros::Duration(5.0)))
-	{
-		ROS_INFO("Waiting for the move_base action server to come up");
-	}
 
 	//Main process of main
 
