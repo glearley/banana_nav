@@ -34,8 +34,10 @@ occupancyGrid global_map;
 
 
 //function needed to read variables from topic
-void costmapcallback(const occupancyGrid &costmap){
-	global_map = costmap; //Sets local occupancy grid from move_base to use able global one
+void costmapcallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap){
+	global_map.info = costmap->info; //Sets local occupancy grid from move_base to use able global one
+	global_map.data = costmap->data;
+	global_map.header = costmap->header;
 }
 
 
@@ -46,15 +48,6 @@ int main(int argc, char** argv) {
 
 	ros::init(argc,argv,"banana_nav");//initializes node
 	ros::NodeHandle banana_nav;	//Used as a constructor and destructor of ROS nodes
-
-	//tell the action client that we want to spin a thread by default
-	MoveBaseClient ac("move_base",true);
-
-	//wait for the action server to come up
-	while(!ac.waitForServer(ros::Duration(5.0)))
-	{
-		ROS_INFO("Waiting for the move_base action server to come up");
-	}
 
 	//Object that allow banana_nav to publish to topic if necessary
 	//ros::Publisher goal_pub = banana_nav.advertise<std_msgs::String>("goal", 1000);
@@ -121,6 +114,16 @@ int main(int argc, char** argv) {
 	//Print out the size of the occupancy grid to see if it makes sense
 	ROS_INFO("The field length is %d",field_length);
 	ROS_INFO("The field width is %d",field_width);
+	
+
+	//tell the action client that we want to spin a thread by default
+	MoveBaseClient ac("move_base",true);
+
+	//wait for the action server to come up
+	while(!ac.waitForServer(ros::Duration(5.0)))
+	{
+		ROS_INFO("Waiting for the move_base action server to come up");
+	}
 
 	//Main process of main
 

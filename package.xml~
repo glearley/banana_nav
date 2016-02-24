@@ -52,7 +52,7 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>move_base_msgs</run_depend>
   <run_depend>actionlib</run_depend>
-  <run_depend>banana_nav</run_depend>
+
 
 
   <!-- The export tag contains other, unspecified, tags -->
