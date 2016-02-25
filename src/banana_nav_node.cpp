@@ -34,7 +34,17 @@ occupancyGrid global_map;
 
 
 //function needed to read variables from topic
-void costmapcallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap){
+/*void costmapcallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap){
+	global_map.info = costmap->info; //Sets local occupancy grid from move_base to use able global one
+	global_map.data = costmap->data;
+	global_map.header = costmap->header;
+	ROS_INFO("The field length is %d",costmap->info.width);
+	ROS_INFO("The field width is %d",costmap->info.height);
+}
+*/
+
+void costmapCallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap)
+{
 	global_map.info = costmap->info; //Sets local occupancy grid from move_base to use able global one
 	global_map.data = costmap->data;
 	global_map.header = costmap->header;
@@ -49,11 +59,17 @@ int main(int argc, char** argv) {
 	ros::init(argc,argv,"banana_nav");//initializes node
 	ros::NodeHandle banana_nav;	//Used as a constructor and destructor of ROS nodes
 
+	//Holds the length and width of the local cost map
+	int field_length = 0; int field_width = 0;
+
+
 	//Object that allow banana_nav to publish to topic if necessary
 	//ros::Publisher goal_pub = banana_nav.advertise<std_msgs::String>("goal", 1000);
 
 	//Object that allow banana_nav to subscribe to move_bases local_costmap topic
-	ros::Subscriber subOGrid = banana_nav.subscribe("move_base/local_costmap/costmap",1000,costmapcallback);
+	ros::Subscriber subOGrid = banana_nav.subscribe("/move_base/local_costmap/costmap",1000,costmapCallback);
+
+	ros::Rate loop_rate(5); // 5Hz
 
 	Goal currentGoal(0,0,true); //custom message type to get goal from function
 
@@ -65,12 +81,9 @@ int main(int argc, char** argv) {
 
 	bool done = false; //Set to true if we have reached the end of the banana field
 
-	//Holds the length and width of the local cost map
-	int field_length = 0; int field_width = 0;
 
 	//direction gives the direction base_link is facing.
 	bool direction = true; //True means it is facing positive x and False means it is facing negative x
-
 
 	////////////////////////////////Take in inputs or go to defaults///////////////////////////////////////////////
 	//if-else statements are there if no inputs are given and implements default values
@@ -95,27 +108,26 @@ int main(int argc, char** argv) {
 		field_length = strtol(argv[1],&p,10);
 		field_width = strtol(argv[2],&p,10);
 	}	*/
-
+	
 	//Set the max length and width of the map based on info from the occupancy grid
 	field_length = global_map.info.height;
 	field_width = global_map.info.width;
 
 
 	//Wait for Map to be Created
-	while(field_length == 0 || field_width == 0){
-
+while(field_length == 0 || field_width == 0){
 	//Set the max length and width of the map based on info from the occupancy grid
+	ros::spinOnce();
 	field_length = global_map.info.height;
 	field_width = global_map.info.width;
-
-
-	ROS_INFO("Error Error NO Map Received"); //No map received error message
+	ROS_INFO("Waiting on Local Cost Map"); //Waiting on Local Cost map error message
 	}
+
+
 	//Print out the size of the occupancy grid to see if it makes sense
 	ROS_INFO("The field length is %d",field_length);
 	ROS_INFO("The field width is %d",field_width);
 	
-
 	//tell the action client that we want to spin a thread by default
 	MoveBaseClient ac("move_base",true);
 
@@ -127,7 +139,12 @@ int main(int argc, char** argv) {
 
 	//Main process of main
 
+	
+
 	while(~done){ //We run a switch until mission is completed. Thus it acts as a state machine
+		
+		ros::spinOnce();//Get new map before next planing decision
+
 		switch(endofRow){//We are either going down a row or going to next row
 
 		///////////////////////////////////On Row////////////////////////////////////////////////////////////////////
@@ -161,6 +178,9 @@ int main(int argc, char** argv) {
 				return 0; // ends node
 			}
 
+			//Get updated costmap before determining if it is an end of a row
+			ros::spinOnce();
+			
 			//Check if we are at an end of a row
 			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width);
 			break;
@@ -219,8 +239,11 @@ int main(int argc, char** argv) {
 				done = true;
 				return 0; //ends node
 			}
-
-			//check if there are no more rows of threes
+			
+			//Get new map to check if done
+			ros::spinOnce();
+			
+			//check if there are no more rows of trees
 			done = CheckifDone( global_map.data, field_length, field_width);
 			break;
 
