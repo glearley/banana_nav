@@ -37,7 +37,7 @@ public:
 
 //function to get cost from occupancy grid given coordinates
 //Param: x,y are location of point. map is the array you are wanting information from.
-//max_x, max_y are bounds of map.
+//max_x, max_y are bounds of map. 
 int GetCost(int x,int y,int8 map, int max_x,int max_y);
 
 
@@ -48,14 +48,15 @@ int GetIndex(int x,int y,int max_x,int max_y);
 
 //Finds the goal and returns if it found one or not
 //Param: currentGoal is object you store goal coordinates in. map is the array you are wanting information from.
-//max_x, max_y are bounds of map.
-bool FindGoal(Goal currentGoal,int8 map,int m_x,int m_y);
+//max_x, max_y are bounds of map. resolution is the number of meters per cell in the map.
+bool FindGoal(Goal& currentGoal,int8 map,int m_x,int m_y,float resolution);
 
 
 //determines and gives the location of the next spot to look for trees
 //Param: x,y are location of point. map is the array you are wanting information from. max_x, max_y are bounds of map.
 //direction is the direction the base_link is facing with respect to the world positive x is true and negative x is false
-bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction);
+//resolution is the number of meters per cell in the map.
+bool FindRow(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction,float resolution);
 
 
 //determines if we are done and need to return to base

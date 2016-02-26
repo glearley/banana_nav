@@ -119,7 +119,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-include
+  include
 )
 
 ## Declare a C++ library

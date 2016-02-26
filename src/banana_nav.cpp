@@ -13,10 +13,12 @@
 using namespace std;
 typedef std::vector<int8_t> int8;
 
+int buffer = 95;
 
 //Finds the goal and returns if it found one or not
-bool FindGoal(Goal currentGoal,int8 map, int m_x,int m_y){
-
+bool FindGoal(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
+	
+	
 	//Stores the bounds of the map
 	int maxHeight = m_y; int maxWidth = m_x;
 
@@ -33,31 +35,30 @@ bool FindGoal(Goal currentGoal,int8 map, int m_x,int m_y){
 	int halfWidth =maxWidth/2;
 
 	//variables that hold the location of the closet tree on the left and right
-	int LTLocatedHeight = 0; int LTLocatedWidth = 0;
-	int RTLocatedHeight = 0; int RTLocatedWidth = 0;
+	float LTLocatedHeight = 0; float LTLocatedWidth = 0;
+	float RTLocatedHeight = 0; float RTLocatedWidth = 0;
 
 	//while left tree and right tree have not been found
-	for(height = maxHeight/2; height<maxHeight; height++){
+	for(height = maxHeight/2; height<=maxHeight; height++){
 
 		for(width = halfWidth; width>=0;width--) {//search for the closet tree/obstacle to the left of the base_link
 
-			if(width<halfWidth){
 				LTcost = GetCost(width,height,map, maxWidth, maxHeight);
-
+				//ROS_INFO("LTcost = %d",LTcost);
 				//add in check if index is outside of map//////////////////////////////////////////////////////////////////////
-				if ((LTcost == 100) && (LTtrigger != true)){//found a lethal cost and haven't found one before this.									//lethal points are trees and it WILL NOT see last layers trees
+				if ((LTcost > buffer) && (LTtrigger == false)){//found a lethal cost and haven't found one before this.									//lethal points are trees and it WILL NOT see last layers trees
 					LTtrigger = true;
 					LTLocatedHeight = height;
 					LTLocatedWidth = width;
 				}
-			}
+		
 		}
-		for(width = halfWidth; width < maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
+		for(width = halfWidth; width <= maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
 
 			if(width>halfWidth){ //Find first tree on right side of base_link
 				RTcost = GetCost(width,height,map, maxWidth, maxHeight);
-
-				if ((RTcost == 100) && (RTtrigger != true)){//found a lethal cost and haven't found one before this.									//lethal points are trees and it WILL NOT see last layers trees
+				//ROS_INFO("RTcost = %d",RTcost);
+				if ((RTcost > buffer) && (RTtrigger != true)){//found a lethal cost and haven't found one before this.									//lethal points are trees and it WILL NOT see last layers trees
 					RTtrigger = true;
 					RTLocatedHeight = height;
 					RTLocatedWidth = width;
@@ -67,18 +68,22 @@ bool FindGoal(Goal currentGoal,int8 map, int m_x,int m_y){
 	}
 
 	//Return false if no trees and sets goal to 0,0
-	if((RTtrigger&&LTtrigger)!= true){//Check if there are no trees
+	if(RTtrigger == false || LTtrigger == false){//Check if there are no trees
+		ROS_INFO("I messed UP");
+		//if(LTtrigger)ROS_INFO("LT trigger is true");
+		//if(RTtrigger)ROS_INFO("RT trigger is true");		
 		currentGoal.y = 0;
 		currentGoal.x = 0;
 		return false;
 	}
 
 	//Return true, we have found two trees and have a goal
-	else if((RTtrigger&&LTtrigger) == true){
-
+	else if((RTtrigger == true && LTtrigger == true)){
+		//ROS_INFO("I did the right thing /n right trigger is at height %f and width %f and left trigger is at height %f and width %f",RTLocatedHeight,RTLocatedWidth,LTLocatedHeight,LTLocatedWidth);		
 		//Sets the goal points based how the center of the local map which is the location of the base_link
-		currentGoal.y = -1*((RTLocatedWidth + LTLocatedWidth)/2 - maxWidth/2) + maxWidth/2;//negative because Y to the left is positive
-		currentGoal.x = (RTLocatedHeight +LTLocatedHeight)/2 - maxHeight/2;
+		currentGoal.y = resolution*(-1*((RTLocatedWidth + LTLocatedWidth)/2 - maxWidth/2) + maxWidth/2);//negative because Y to the left is positive
+		currentGoal.x = resolution*((RTLocatedHeight +LTLocatedHeight)/2 - maxHeight/2);
+		//ROS_INFO("goal is at x = %f and y = %f",currentGoal.x,currentGoal.y);
 		return true;
 
 		//unused path planing code may use in future
@@ -103,7 +108,10 @@ bool FindGoal(Goal currentGoal,int8 map, int m_x,int m_y){
 //function to get cost from occupancy grid given coordinates
 int GetCost(int x,int y,int8 map, int max_x,int max_y)
 {
+	char *p;
 	int index = GetIndex(x,y,max_x,max_y);
+	//Good Debug
+	//ROS_INFO("Value at index %d is %d", index, map[index]);
 	if(index == -1) return -10; //return -10 if index is outside of range
 	else return map[index];
 }
@@ -125,7 +133,7 @@ int GetIndex(int x,int y, int max_x,int max_y)
 
 
 //determines and gives the location of the next spot to look for trees
-bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction)
+bool FindRow(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction, float resolution)
 {
 	//Stores the bounds of the map
 	int maxHeight = m_y; int maxWidth = m_x;
@@ -161,7 +169,7 @@ bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction)
 			for(width = halfWidth; width<maxWidth;width++) {
 				if(width<halfWidth){
 					RTcost = GetCost(width,height,map, maxWidth, maxHeight);
-					if ((RTcost == 100) && (RTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
+					if ((RTcost > buffer) && (RTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
 						RTtrigger = true;
 						RTLocatedHeight = height;
 						RTLocatedWidth = width;
@@ -177,8 +185,8 @@ bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction)
 		}
 		else{
 			//Set goal to be in front of the next row
-			currentGoal.y = -1*((RTLocatedWidth + LTLocatedWidth)/2 - maxWidth/2) - widthOffset;
-			currentGoal.x = (RTLocatedHeight +LTLocatedHeight)/2 - maxHeight/2 + heightOffset;
+			currentGoal.y = resolution*(-1*(RTLocatedWidth + LTLocatedWidth)/2 - maxWidth/2) - widthOffset;
+			currentGoal.x = resolution*((RTLocatedHeight +LTLocatedHeight)/2 - maxHeight/2) + heightOffset;
 			currentGoal.orientation = false;//Set goal so base_link is facing negative x
 			return true;
 		}
@@ -190,7 +198,7 @@ bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction)
 			for(width = halfWidth; width>=0;width--) {
 				if(width<halfWidth){
 					LTcost = GetCost(width,height,map, maxWidth, maxHeight);
-					if ((LTcost == 100) && (LTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
+					if ((LTcost > buffer) && (LTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
 						LTtrigger = true;
 						LTLocatedHeight = height;
 						LTLocatedWidth = width;
@@ -206,8 +214,8 @@ bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction)
 		}
 		else{
 			//Set goal to be in front of the next row
-			currentGoal.y = -1*((RTLocatedWidth + LTLocatedWidth)/2 - maxWidth/2) + widthOffset;
-			currentGoal.x = (RTLocatedHeight +LTLocatedHeight)/2 - maxHeight/2 + heightOffset;
+			currentGoal.y = -resolution*((RTLocatedWidth + LTLocatedWidth)/2 - maxWidth/2) + widthOffset;
+			currentGoal.x = resolution*(RTLocatedHeight +LTLocatedHeight)/2 - maxHeight/2 + heightOffset;
 			currentGoal.orientation = true; //Set goal so base_link is facing positive x
 			return true;
 		}
@@ -251,7 +259,7 @@ bool CheckifDone(int8 map, int m_x,int m_y){
 			if(width<halfWidth){ //Find first tree on left side of base_link
 
 				LTcost = GetCost(width,height,map, maxWidth, maxHeight);
-				if ((LTcost == 100) && (LTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
+				if ((LTcost > buffer) && (LTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
 					LTtrigger = true;
 				}
 			}
@@ -262,7 +270,7 @@ bool CheckifDone(int8 map, int m_x,int m_y){
 			if(width>halfWidth){ //Find first tree on right side of base_link
 
 				RTcost = GetCost(width,height,map, maxWidth, maxHeight);
-				if ((RTcost == 100) && (RTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
+				if ((RTcost > buffer) && (RTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
 					RTtrigger = true;
 				}
 			}

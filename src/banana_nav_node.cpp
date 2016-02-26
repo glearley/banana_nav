@@ -9,6 +9,7 @@
 #include "std_msgs/String.h"
 #include <banana_nav/banana_nav.h>
 #include <stdlib.h>
+#include <ros/console.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <move_base/move_base.h>
 #include <actionlib/client/simple_action_client.h>
@@ -113,6 +114,19 @@ int main(int argc, char** argv) {
 	field_length = global_map.info.height;
 	field_width = global_map.info.width;
 
+	// initilize goal
+	goal.target_pose.header.frame_id = "base_link";
+	goal.target_pose.header.stamp = ros::Time::now();
+
+			//set the goals position
+	goal.target_pose.pose.position.x = 0;
+	goal.target_pose.pose.position.y = 0;
+	goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
+	goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
+	goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
+	goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
+
+
 
 	//Wait for Map to be Created
 while(field_length == 0 || field_width == 0){
@@ -127,15 +141,10 @@ while(field_length == 0 || field_width == 0){
 	//Print out the size of the occupancy grid to see if it makes sense
 	ROS_INFO("The field length is %d",field_length);
 	ROS_INFO("The field width is %d",field_width);
-	
 	//tell the action client that we want to spin a thread by default
 	MoveBaseClient ac("move_base",true);
 
 	//wait for the action server to come up
-	while(!ac.waitForServer(ros::Duration(5.0)))
-	{
-		ROS_INFO("Waiting for the move_base action server to come up");
-	}
 
 	//Main process of main
 
@@ -151,19 +160,25 @@ while(field_length == 0 || field_width == 0){
 
 		//Base_link is currently on a row
 		case false:
-			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width); //obtain goal to send to move_base
+			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution); //obtain goal to send to move_base
 
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
 			goal.target_pose.header.stamp = ros::Time::now();
-
+			
 			//set the goals position
 			goal.target_pose.pose.position.x = currentGoal.x;
 			goal.target_pose.pose.position.y = currentGoal.y;
-			goal.target_pose.pose.orientation.w = 1;          //w = 1 keeps it going current direction
 
 			ROS_INFO("Sending goal x = %f and y = %f",currentGoal.x,currentGoal.y); //Print current goal to terminal
 
+
+			while(!ac.waitForServer(ros::Duration(5.0)))
+			{
+				ROS_INFO("Waiting for the move_base action server to come up");
+			}
+
+			
 			ac.sendGoal(goal); //send goal to move_base
 			ac.waitForResult();//Wait for goal to be completed
 
@@ -182,7 +197,7 @@ while(field_length == 0 || field_width == 0){
 			ros::spinOnce();
 			
 			//Check if we are at an end of a row
-			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width);
+			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution);
 			break;
 
 			//////////////////////////////Find Next Row////////////////////////////////////////////////////////////////////////////////
@@ -190,7 +205,7 @@ while(field_length == 0 || field_width == 0){
 			//Need to find next row
 		case true:
 			//Add error check to FindRow
-			FindRow(currentGoal,global_map.data,field_length,field_width,direction); //Find goal that lines us up with next row
+			FindRow(currentGoal,global_map.data,field_length,field_width,direction,global_map.info.resolution); //Find goal that lines us up with next row
 
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
@@ -225,7 +240,13 @@ while(field_length == 0 || field_width == 0){
 			default:
 			ROS_INFO("ERROR ERROR ERROR in nextROW/node");
 			}
+			
+			while(!ac.waitForServer(ros::Duration(5.0)))
+			{
+			ROS_INFO("Waiting for the move_base action server to come up");
+			}
 
+			
 			ac.sendGoal(goal); //send goal to move_base
 			ac.waitForResult(); //Wait for goal to be completed
 
