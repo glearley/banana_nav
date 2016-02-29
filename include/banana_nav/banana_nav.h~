@@ -56,7 +56,7 @@ bool FindGoal(Goal& currentGoal,int8 map,int m_x,int m_y,float resolution);
 //Param: x,y are location of point. map is the array you are wanting information from. max_x, max_y are bounds of map.
 //direction is the direction the base_link is facing with respect to the world positive x is true and negative x is false
 //resolution is the number of meters per cell in the map.
-bool FindRow(Goal currentGoal,int8 map, int m_x,int m_y, bool direction,float resolution);
+bool FindRow(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction,float resolution);
 
 
 //determines if we are done and need to return to base

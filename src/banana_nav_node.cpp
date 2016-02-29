@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav_node.cpp
-// Author      : Gabriel Earley
-// Version     : #2.1 with improved formating and commenting
+// Author      : Gabriel Earley and Justin Alabaster
+// Version     : #2.2 with improved formating and commenting
 // Copyright   : Your copyright notice
 // Description : banana_nav_node(banana_nav executable)
 //==============================================================================
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 		field_length = strtol(argv[1],&p,10);
 		field_width = strtol(argv[2],&p,10);
 	}	*/
-	
+
 	//Set the max length and width of the map based on info from the occupancy grid
 	field_length = global_map.info.height;
 	field_width = global_map.info.width;
@@ -130,8 +130,10 @@ int main(int argc, char** argv) {
 
 	//Wait for Map to be Created
 while(field_length == 0 || field_width == 0){
+
+	ros::spinOnce();//Check topics for data
+
 	//Set the max length and width of the map based on info from the occupancy grid
-	ros::spinOnce();
 	field_length = global_map.info.height;
 	field_width = global_map.info.width;
 	ROS_INFO("Waiting on Local Cost Map"); //Waiting on Local Cost map error message
@@ -141,6 +143,7 @@ while(field_length == 0 || field_width == 0){
 	//Print out the size of the occupancy grid to see if it makes sense
 	ROS_INFO("The field length is %d",field_length);
 	ROS_INFO("The field width is %d",field_width);
+	ROS_INFO("The origion of the local map is located at x = %f and y = %f", global_map.info.origin.position.x,global_map.info.origin.position.y);
 	//tell the action client that we want to spin a thread by default
 	MoveBaseClient ac("move_base",true);
 
@@ -148,10 +151,10 @@ while(field_length == 0 || field_width == 0){
 
 	//Main process of main
 
-	
+
 
 	while(~done){ //We run a switch until mission is completed. Thus it acts as a state machine
-		
+
 		ros::spinOnce();//Get new map before next planing decision
 
 		switch(endofRow){//We are either going down a row or going to next row
@@ -165,7 +168,7 @@ while(field_length == 0 || field_width == 0){
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
 			goal.target_pose.header.stamp = ros::Time::now();
-			
+
 			//set the goals position
 			goal.target_pose.pose.position.x = currentGoal.x;
 			goal.target_pose.pose.position.y = currentGoal.y;
@@ -178,7 +181,7 @@ while(field_length == 0 || field_width == 0){
 				ROS_INFO("Waiting for the move_base action server to come up");
 			}
 
-			
+
 			ac.sendGoal(goal); //send goal to move_base
 			ac.waitForResult();//Wait for goal to be completed
 
@@ -195,7 +198,7 @@ while(field_length == 0 || field_width == 0){
 
 			//Get updated costmap before determining if it is an end of a row
 			ros::spinOnce();
-			
+
 			//Check if we are at an end of a row
 			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution);
 			break;
@@ -240,13 +243,13 @@ while(field_length == 0 || field_width == 0){
 			default:
 			ROS_INFO("ERROR ERROR ERROR in nextROW/node");
 			}
-			
+
 			while(!ac.waitForServer(ros::Duration(5.0)))
 			{
 			ROS_INFO("Waiting for the move_base action server to come up");
 			}
 
-			
+
 			ac.sendGoal(goal); //send goal to move_base
 			ac.waitForResult(); //Wait for goal to be completed
 
@@ -260,10 +263,10 @@ while(field_length == 0 || field_width == 0){
 				done = true;
 				return 0; //ends node
 			}
-			
+
 			//Get new map to check if done
 			ros::spinOnce();
-			
+
 			//check if there are no more rows of trees
 			done = CheckifDone( global_map.data, field_length, field_width);
 			break;

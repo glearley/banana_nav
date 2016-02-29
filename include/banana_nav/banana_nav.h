@@ -3,8 +3,8 @@
 
  *
  *  Created on: 2/14/2016
- *      Version 2.1 with improved formating and commenting
- *      Author: Gabriel Earley
+ *      Version 2.2 with improved formating and commenting
+ *      Author: Gabriel Earley and Justin Alabaster
  */
 
 #ifndef BANANA_NAV_H_
@@ -37,7 +37,7 @@ public:
 
 //function to get cost from occupancy grid given coordinates
 //Param: x,y are location of point. map is the array you are wanting information from.
-//max_x, max_y are bounds of map. 
+//max_x, max_y are bounds of map.
 int GetCost(int x,int y,int8 map, int max_x,int max_y);
 
 

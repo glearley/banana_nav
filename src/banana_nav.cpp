@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav.cpp
-// Author      : Gabriel Earley
-// Version     : #2.1 with improved formating and commenting
+// Author      : Gabriel Earley and Justin Alabaster
+// Version     : #2.2 with improved formating and commenting
 // Copyright   : Your copyright notice
 // Description : banana_nav library
 //==============================================================================
@@ -11,14 +11,15 @@
 #include <nav_msgs/OccupancyGrid.h>
 
 using namespace std;
+
 typedef std::vector<int8_t> int8;
 
-int buffer = 95;
+int buffer = 95;//Determines what cost values are considered objects
 
 //Finds the goal and returns if it found one or not
 bool FindGoal(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
-	
-	
+
+
 	//Stores the bounds of the map
 	int maxHeight = m_y; int maxWidth = m_x;
 
@@ -44,20 +45,24 @@ bool FindGoal(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
 		for(width = halfWidth; width>=0;width--) {//search for the closet tree/obstacle to the left of the base_link
 
 				LTcost = GetCost(width,height,map, maxWidth, maxHeight);
-				//ROS_INFO("LTcost = %d",LTcost);
+
+				//ROS_INFO("LTcost = %d",LTcost);//Used for Debug
+
 				//add in check if index is outside of map//////////////////////////////////////////////////////////////////////
 				if ((LTcost > buffer) && (LTtrigger == false)){//found a lethal cost and haven't found one before this.									//lethal points are trees and it WILL NOT see last layers trees
 					LTtrigger = true;
 					LTLocatedHeight = height;
 					LTLocatedWidth = width;
 				}
-		
+
 		}
 		for(width = halfWidth; width <= maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
 
 			if(width>halfWidth){ //Find first tree on right side of base_link
 				RTcost = GetCost(width,height,map, maxWidth, maxHeight);
-				//ROS_INFO("RTcost = %d",RTcost);
+
+				//ROS_INFO("RTcost = %d",RTcost);//Used for Debug
+
 				if ((RTcost > buffer) && (RTtrigger != true)){//found a lethal cost and haven't found one before this.									//lethal points are trees and it WILL NOT see last layers trees
 					RTtrigger = true;
 					RTLocatedHeight = height;
@@ -69,9 +74,11 @@ bool FindGoal(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
 
 	//Return false if no trees and sets goal to 0,0
 	if(RTtrigger == false || LTtrigger == false){//Check if there are no trees
-		ROS_INFO("I messed UP");
-		//if(LTtrigger)ROS_INFO("LT trigger is true");
-		//if(RTtrigger)ROS_INFO("RT trigger is true");		
+
+		ROS_INFO("I messed UP");//Displays if we don't see both trees
+		if(LTtrigger)ROS_INFO("LT trigger is true");//Displays if we see tree on left side
+		if(RTtrigger)ROS_INFO("RT trigger is true");//Displays if we see tree on right side
+
 		currentGoal.y = 0;
 		currentGoal.x = 0;
 		return false;
@@ -79,26 +86,23 @@ bool FindGoal(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
 
 	//Return true, we have found two trees and have a goal
 	else if((RTtrigger == true && LTtrigger == true)){
-		//ROS_INFO("I did the right thing /n right trigger is at height %f and width %f and left trigger is at height %f and width %f",RTLocatedHeight,RTLocatedWidth,LTLocatedHeight,LTLocatedWidth);		
+
+		//Location from bot in meters
+		float MRTLocatedWidth = -resolution*(RTLocatedWidth-maxWidth/2);
+		float MLTLocatedWidth = -resolution*(LTLocatedWidth-maxWidth/2);
+		float MRTLocatedHeight = resolution*(RTLocatedHeight-maxHeight/2);
+		float MLTLocatedHeight = resolution*(LTLocatedHeight-maxHeight/2);
+
+		//Displays if we see trees
+		ROS_INFO("I did the right thing \n right trigger is at height %f and width %f and left trigger is at height %f and width %f",MRTLocatedHeight,MRTLocatedWidth,MLTLocatedHeight,MLTLocatedWidth);
+
 		//Sets the goal points based how the center of the local map which is the location of the base_link
-		currentGoal.y = resolution*(-1*((RTLocatedWidth + LTLocatedWidth)/2 - maxWidth/2) + maxWidth/2);//negative because Y to the left is positive
-		currentGoal.x = resolution*((RTLocatedHeight +LTLocatedHeight)/2 - maxHeight/2);
-		//ROS_INFO("goal is at x = %f and y = %f",currentGoal.x,currentGoal.y);
+		currentGoal.y = resolution*(-1*((RTLocatedWidth + LTLocatedWidth)/2 - (maxWidth/2)));//negative because Y to the left is positive
+		currentGoal.x = resolution*((RTLocatedHeight +LTLocatedHeight)/2 - (maxHeight/2));
+
+		//ROS_INFO("goal is at x = %f and y = %f",currentGoal.x,currentGoal.y); //Used for Debug
 		return true;
 
-		//unused path planing code may use in future
-		/*	if (RTLocatedHeight == LTLocatedHeight){//accounts for the lethal points to be on same row
-		goalHeight = RTLocatedHeight;
-		goalWidth = (RTLocatedWidth+LTLocatedWidth)/2; //midpoint formula
-	}
-	else if (LTLocatedHeight<RTLocatedHeight) {//left tree closer than right tree
-		goalHeight = LTLocatedHeight; //assume the closest tree to be the best stopping point
-		goalWidth = (RTLocatedWidth+LTLocatedWidth)/2; //midpoint formula
-	}
-	else { //right tree closer
-		goalHeight = RTLocatedHeight; //assume the closest tree to be the best stopping point
-		goalWidth = (RTLocatedWidth+LTLocatedWidth)/2; //midpoint formula
-	}*/
 	}
 }
 
@@ -106,12 +110,12 @@ bool FindGoal(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
 //////////////////////////////////////Get Cost//////////////////////////////////////////////////////////////////////////
 
 //function to get cost from occupancy grid given coordinates
-int GetCost(int x,int y,int8 map, int max_x,int max_y)
+int GetCost(int width,int height,int8 map, int max_width,int max_height)
 {
-	char *p;
-	int index = GetIndex(x,y,max_x,max_y);
-	//Good Debug
-	//ROS_INFO("Value at index %d is %d", index, map[index]);
+	int index = GetIndex(width,height,max_width,max_height);
+
+	//ROS_INFO("Value at index %d is %d", index, map[index]);//Used for Debug
+
 	if(index == -1) return -10; //return -10 if index is outside of range
 	else return map[index];
 }
@@ -119,11 +123,11 @@ int GetCost(int x,int y,int8 map, int max_x,int max_y)
 ///////////////////////////////////////////////////////Get Index//////////////////////////////////////////////////////////////////
 
 //function to get index from occupancy grid given coordinates
-int GetIndex(int x,int y, int max_x,int max_y)
+int GetIndex(int width,int height, int max_width,int max_height)
 {
 	int index = 0;
-	if((y > max_y) || (x > max_x)) return -1; //return -1 if index is outside of range
-	else index = ((y-1)*max_x)+x; //use number of rows minus 1 times the width of a row + the x coordinate to get the index
+	if((height > max_height) || (width > max_width)) return -1; //return -1 if index is outside of range
+	else index = ((height)*max_width)+height; //use number of rows times the width of a row + the x coordinate to get the index
 	return index;
 }
 
@@ -280,6 +284,6 @@ bool CheckifDone(int8 map, int m_x,int m_y){
 	if(RTtrigger == true && LTtrigger == true){//Check if there are trees on both sides
 		return true;
 	}
-	else return false;//There are no trees on one side
+	else return false;//There are no trees on either side
 }
 
