@@ -149,7 +149,7 @@ bool FindGoalBack(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
 	float RTLocatedHeight = 0; float RTLocatedWidth = 0;
 
 	//while left tree and right tree have not been found
-	for(height = maxHeight/2-offset; height>=0; height--){
+	for(height = maxHeight/2-footprintoffset; height>=0; height--){
 
 		for(width = halfWidth; width>=0;width--) {//search for the closet tree/obstacle to the left of the base_link
 

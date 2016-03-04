@@ -459,13 +459,13 @@ bool CheckifDone(int8 map, int m_x,int m_y,float rotation){
 	float upperRange = M_PI/16 ;
 	float lowerRange = 15*M_PI/16;
 
-	if(rotation > -upperRange && rotation < upperRange)
+//	if(rotation > -upperRange && rotation < upperRange)
 	return CheckifDoneFront(map,m_x,m_y);
 
-	else if(rotation < -lowerRange && rotation > lowerRange)
-	return CheckifDoneBack(map,m_x,m_y);
+//	else if(rotation < -lowerRange && rotation > lowerRange)
+//	return CheckifDoneBack(map,m_x,m_y);
 
-	else ROS_INFO("Error Error J5 not directly facing positive x or negative x its relative rotation is %f",rotation);
+//	else ROS_INFO("Error Error J5 not directly facing positive x or negative x its relative rotation is %f",rotation);
 	return false;
 }
 
