@@ -17,7 +17,8 @@ typedef std::vector<int8_t> int8;
 
 int buffer = 95;//Determines what cost values are considered objects
 
-int footprintoffset = 80;//offset in cells
+int frontFootPrintoffset = 60;//offset in cells
+int sideFootPrintoffset = 60;//offset in cells
 
 bool FindGoal(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution,float rotation){
 
@@ -59,9 +60,9 @@ bool FindGoalFront(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution)
 	float RTLocatedHeight = 0; float RTLocatedWidth = 0;
 
 	//while left tree and right tree have not been found
-	for(height = maxHeight/2 + footprintoffset; height<=maxHeight; height++){
+	for(height = maxHeight/2 + frontFootPrintOffset; height<=maxHeight; height++){
 
-		for(width = halfWidth; width>=0;width--) {//search for the closet tree/obstacle to the left of the base_link
+		for(width = halfWidth-sideFootPrintOffset; width>=0;width--) {//search for the closet tree/obstacle to the left of the base_link
 
 				LTcost = GetCost(width,height,map, maxWidth, maxHeight);
 
@@ -75,7 +76,7 @@ bool FindGoalFront(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution)
 				}
 
 		}
-		for(width = halfWidth; width <= maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
+		for(width = halfWidth+sideFootPrintOffset; width <= maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
 
 			if(width>halfWidth){ //Find first tree on right side of base_link
 				RTcost = GetCost(width,height,map, maxWidth, maxHeight);
@@ -149,9 +150,9 @@ bool FindGoalBack(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
 	float RTLocatedHeight = 0; float RTLocatedWidth = 0;
 
 	//while left tree and right tree have not been found
-	for(height = maxHeight/2-offset; height>=0; height--){
+	for(height = maxHeight/2-frontFootPrintOffset; height>=0; height--){
 
-		for(width = halfWidth; width>=0;width--) {//search for the closet tree/obstacle to the left of the base_link
+		for(width = halfWidth-sideFootPrintOffset; width>=0;width--) {//search for the closet tree/obstacle to the left of the base_link
 
 				LTcost = GetCost(width,height,map, maxWidth, maxHeight);
 
@@ -165,7 +166,7 @@ bool FindGoalBack(Goal &currentGoal,int8 map, int m_x,int m_y,float resolution){
 				}
 
 		}
-		for(width = halfWidth; width <= maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
+		for(width = halfWidth+sideFootPrintOffset; width <= maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
 
 			if(width>halfWidth){ //Find first tree on right side of base_link
 				RTcost = GetCost(width,height,map, maxWidth, maxHeight);
@@ -294,7 +295,7 @@ bool FindRowFront(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction, f
 	case true:
 		for(height = maxHeight; height>0; height--){//Stop from top of
 			//search for the closet tree/obstacle to the left of the base_link
-			for(width = halfWidth; width<=maxWidth;width++) {
+			for(width = halfWidth+sideFootPrintOffset; width<=maxWidth;width++) {
 				if(width<halfWidth){
 					RTcost = GetCost(width,height,map, maxWidth, maxHeight);
 					if ((RTcost > buffer) && (RTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
@@ -323,7 +324,7 @@ bool FindRowFront(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction, f
 	case false:
 		for(height = maxHeight; height>0; height--){
 			//search for the closet tree/obstacle to the left of the base_link
-			for(width = halfWidth; width>=0;width--) {
+			for(width = halfWidth-sideFootPrintOffset; width>=0;width--) {
 				if(width<halfWidth){
 					LTcost = GetCost(width,height,map, maxWidth, maxHeight);
 					if ((LTcost > buffer) && (LTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
@@ -390,7 +391,7 @@ bool FindRowBack(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction, fl
 	case true:
 		for(height = 0; height<=maxHeight; height++){//Stop from top of
 			//search for the closet tree/obstacle to the left of the base_link
-			for(width = halfWidth; width<maxWidth;width++) {
+			for(width = halfWidth+sideFootPrintOffset; width<maxWidth;width++) {
 				if(width<halfWidth){
 					RTcost = GetCost(width,height,map, maxWidth, maxHeight);
 					if ((RTcost > buffer) && (RTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
@@ -419,7 +420,7 @@ bool FindRowBack(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction, fl
 	case false:
 		for(height = maxHeight; height>0; height--){
 			//search for the closet tree/obstacle to the left of the base_link
-			for(width = halfWidth; width>=0;width--) {
+			for(width = halfWidth-sideFootPrintOffset; width>=0;width--) {
 				if(width<halfWidth){
 					LTcost = GetCost(width,height,map, maxWidth, maxHeight);
 					if ((LTcost > buffer) && (LTtrigger != true)){//found a lethal cost and haven't found one before this. Assumes only 										//lethal points are trees and it WILL NOT see last layers trees
@@ -490,9 +491,9 @@ bool CheckifDoneFront(int8 map, int m_x,int m_y){
 	int halfWidth = maxWidth/2;
 
 
-	for(height = maxHeight/2; height<=maxHeight; height++){
+	for(height = maxHeight/2+frontFootPrintOffset; height<=maxHeight; height++){
 
-		for(width = halfWidth; width>=0;width--) { //search for the closet tree/obstacle to the left of the base_link
+		for(width = halfWidth-sideFootPrintOffset; width>=0;width--) { //search for the closet tree/obstacle to the left of the base_link
 
 			if(width<halfWidth){ //Find first tree on left side of base_link
 
@@ -503,7 +504,7 @@ bool CheckifDoneFront(int8 map, int m_x,int m_y){
 			}
 		}
 
-		for(width = halfWidth; width < maxWidth;width++){ //search for the closet tree/obstacle to the right of the base_link
+		for(width = halfWidth+sideFootPrintOffset; width < maxWidth;width++){ //search for the closet tree/obstacle to the right of the base_link
 
 			if(width>halfWidth){ //Find first tree on right side of base_link
 
@@ -541,9 +542,9 @@ bool CheckifDoneBack(int8 map, int m_x,int m_y){
 	int halfWidth = maxWidth/2;
 
 
-	for(height = maxHeight/2; height>=0; height--){
+	for(height = maxHeight/2-frontFootPrintOffset; height>=0; height--){
 
-		for(width = halfWidth; width>=0;width--) { //search for the closet tree/obstacle to the left of the base_link
+		for(width = halfWidth-sideFootPrintOffset; width>=0;width--) { //search for the closet tree/obstacle to the left of the base_link
 
 			if(width<halfWidth){ //Find first tree on left side of base_link
 
@@ -554,7 +555,7 @@ bool CheckifDoneBack(int8 map, int m_x,int m_y){
 			}
 		}
 
-		for(width = halfWidth; width < maxWidth;width++){ //search for the closet tree/obstacle to the right of the base_link
+		for(width = halfWidth+sideFootPrintOffset; width < maxWidth;width++){ //search for the closet tree/obstacle to the right of the base_link
 
 			if(width>halfWidth){ //Find first tree on right side of base_link
 
