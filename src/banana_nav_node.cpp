@@ -1,12 +1,13 @@
 //============================================================================
 // Name        : banana_nav_node.cpp
 // Author      : Gabriel Earley and Justin Alabaster
-// Version     : #2.2 with improved formating and commenting
+// Version     : #2.3 with improved formating and commenting
 // Copyright   : Your copyright notice
 // Description : banana_nav_node(banana_nav executable)
 //==============================================================================
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float64.h"
 #include <banana_nav/banana_nav.h>
 #include <stdlib.h>
 #include <ros/console.h>
@@ -14,6 +15,7 @@
 #include <move_base/move_base.h>
 #include <actionlib/client/simple_action_client.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <geometry_msgs/Twist.h>
 #include <math.h>
 #include <sstream>
 #include <iostream>
@@ -27,31 +29,28 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 
 typedef nav_msgs::OccupancyGrid occupancyGrid;
 
+typedef geometry_msgs::Twist twist; //Not needed right now but maybe in the future
+
 typedef geometry_msgs::Pose pose; //Not needed right now but maybe in the future
 
 
 //variable used to store the local costmap from move_base
 occupancyGrid global_map;
 
+float relative_rotation;//Holds the relative rotation from starting axis
 
-//function needed to read variables from topic
-/*void costmapcallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap){
-	global_map.info = costmap->info; //Sets local occupancy grid from move_base to use able global one
-	global_map.data = costmap->data;
-	global_map.header = costmap->header;
-	ROS_INFO("The field length is %d",costmap->info.width);
-	ROS_INFO("The field width is %d",costmap->info.height);
-}
-*/
-
+//functions needed to read variables from topics
 void costmapCallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap)
 {
-	global_map.info = costmap->info; //Sets local occupancy grid from move_base to use able global one
+	global_map.info = costmap->info; //Sets local occupancy grid from move_base to global one
 	global_map.data = costmap->data;
 	global_map.header = costmap->header;
 }
 
-
+void rotationCallback(const std_msgs::Float64::ConstPtr& rel_rotation)
+{
+	relative_rotation=rel_rotation->data;
+}
 //////////////////////////////////////////////////////////////Main Function/////////////////////////////////////////
 
 int main(int argc, char** argv) {
@@ -64,11 +63,14 @@ int main(int argc, char** argv) {
 	int field_length = 0; int field_width = 0;
 
 
-	//Object that allow banana_nav to publish to topic if necessary
+	//Object that allows banana_nav to publish to topic if necessary
 	//ros::Publisher goal_pub = banana_nav.advertise<std_msgs::String>("goal", 1000);
 
-	//Object that allow banana_nav to subscribe to move_bases local_costmap topic
+	//Object that allows banana_nav to subscribe to move_bases/local_costmap topic
 	ros::Subscriber subOGrid = banana_nav.subscribe("/move_base/local_costmap/costmap",1000,costmapCallback);
+
+	//Object that allows banana_nav to subscribe to /odometry/filtered topic
+	ros::Subscriber subBotRotation = banana_nav.subscribe("/ref_angle",1000,rotationCallback);
 
 	ros::Rate loop_rate(5); // 5Hz
 
@@ -81,7 +83,6 @@ int main(int argc, char** argv) {
 	bool endofRow = false; //Set to true if we are at the end of the row and need to find new row
 
 	bool done = false; //Set to true if we have reached the end of the banana field
-
 
 	//direction gives the direction base_link is facing.
 	bool direction = true; //True means it is facing positive x and False means it is facing negative x
@@ -143,7 +144,7 @@ while(field_length == 0 || field_width == 0){
 	//Print out the size of the occupancy grid to see if it makes sense
 	ROS_INFO("The field length is %d",field_length);
 	ROS_INFO("The field width is %d",field_width);
-	ROS_INFO("The origion of the local map is located at x = %f and y = %f", global_map.info.origin.position.x,global_map.info.origin.position.y);
+	ROS_INFO("The origin of the local map is located at x = %f and y = %f", global_map.info.origin.position.x,global_map.info.origin.position.y);
 	//tell the action client that we want to spin a thread by default
 	MoveBaseClient ac("move_base",true);
 
@@ -163,7 +164,7 @@ while(field_length == 0 || field_width == 0){
 
 		//Base_link is currently on a row
 		case false:
-			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution); //obtain goal to send to move_base
+			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution,relative_rotation); //obtain goal to send to move_base
 
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
@@ -200,7 +201,7 @@ while(field_length == 0 || field_width == 0){
 			ros::spinOnce();
 
 			//Check if we are at an end of a row
-			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution);
+			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution,relative_rotation);
 			break;
 
 			//////////////////////////////Find Next Row////////////////////////////////////////////////////////////////////////////////
@@ -208,7 +209,7 @@ while(field_length == 0 || field_width == 0){
 			//Need to find next row
 		case true:
 			//Add error check to FindRow
-			FindRow(currentGoal,global_map.data,field_length,field_width,direction,global_map.info.resolution); //Find goal that lines us up with next row
+			FindRow(currentGoal,global_map.data,field_length,field_width,direction,global_map.info.resolution,relative_rotation); //Find goal that lines us up with next row
 
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
@@ -268,7 +269,7 @@ while(field_length == 0 || field_width == 0){
 			ros::spinOnce();
 
 			//check if there are no more rows of trees
-			done = CheckifDone( global_map.data, field_length, field_width);
+			done = CheckifDone(global_map.data, field_length, field_width,relative_rotation);
 			break;
 
 		default:
