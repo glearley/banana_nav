@@ -3,7 +3,7 @@
 
  *
  *  Created on: 2/14/2016
- *      Version 2.2 with improved formating and commenting
+ *      Version 3 with objects
  *      Author: Gabriel Earley and Justin Alabaster
  */
 
@@ -22,56 +22,53 @@ public:
 
 	bool orientation;// true is face positive x; false is face negative x
 
-	Goal(double a, double b, bool c)// Constructor
-	{
-	x = a;
-	y = b;
-	orientation =c;
-	};
-
-	~Goal(){}//Destructor
+	Goal(double goal_x, double goal_y, bool goal_orientation);// Constructor
+	~Goal();//Destructor
 };
 
 
-//function to get cost from occupancy grid given coordinates
-//Param: x,y are location of point. map is the array you are wanting information from.
-//Param: max_x, max_y are bounds of map.
-int GetCost(int x,int y,int8 map, int max_x,int max_y);
 
 
-//function to get index from occupancy grid given coordinates
-//Param: x,y are location of point. max_x, max_y are bounds of map.
-int GetIndex(int x,int y,int max_x,int max_y);
+//Param: map is the array you are wanting information from. max_x, max_y are bounds of map.
+//Param: direction is the direction the base_link is facing with respect to the world positive x is true and negative x is false
+//Param: resolution is the number of meters per cell in the map. rotation is how far the vehicle has rotated off its initial axis
+class Banana_nav{
+public:
+Goal* currentGoal;
+int m_x,m_y;
+int8 map;
+bool direction;
+float resolution;
 
+Banana_nav(Goal* init_goal,int8 init_map, int init_m_x, int init_m_y, float init_resolution);
+
+~Banana_nav();
 
 //Finds the goal and returns if it found one or not
 //Param: currentGoal is object you store goal coordinates in. map is the array you are wanting information from.
 //Param: max_x, max_y are bounds of map. resolution is the number of meters per cell in the map.
 //Param: rotation is how far the vehicle has rotated off its initial axis
-bool FindGoal(Goal& currentGoal,int8 map,int m_x,int m_y,float resolution,float rotation);
-
-bool FindGoalFront(Goal& currentGoal,int8 map,int m_x,int m_y,float resolution);
-
-bool FindGoalBack(Goal& currentGoal,int8 map,int m_x,int m_y,float resolution);
+bool FindGoal();
 
 //determines and gives the location of the next spot to look for trees
-//Param: x,y are location of point. map is the array you are wanting information from. max_x, max_y are bounds of map.
-//Param: direction is the direction the base_link is facing with respect to the world positive x is true and negative x is false
-//Param: resolution is the number of meters per cell in the map. rotation is how far the vehicle has rotated off its initial axis
-bool FindRow(Goal& currentGoal,int8 map, int m_x,int m_y, bool direction,float resolution,float rotation);
-
-bool FindRowFront(Goal& currentGoal,int8 map,int m_x,int m_y,float resolution,bool direction);
-
-bool FindRowBack(Goal& currentGoal,int8 map,int m_x,int m_y,float resolution,bool direction);
+bool FindRow();
 
 //determines if we are done and need to return to base
 //Param: x,y are location of point. map is the array you are wanting information from.
 //Param: max_x, max_y are bounds of map. rotation is how far the vehicle has rotated off its initial axis
-bool CheckifDone(int8 map, int m_x,int m_y,float rotation);
+bool CheckifDone();
 
-bool CheckifDoneFront(int8 map, int m_x,int m_y);
+private:
+//function to get cost from occupancy grid given coordinates
+//Param: width ,height are location of point
+int GetCost(int width, int height);
 
-bool CheckifDoneBack(int8 map, int m_x,int m_y);
+//function to get index from occupancy grid given coordinates
+//Param: width ,height are location of point
+int GetIndex(int width, int height);
+
+};
+
 
 #endif /* BANANA_NAV_H_ */
 

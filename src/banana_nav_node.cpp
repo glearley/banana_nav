@@ -1,24 +1,29 @@
 //============================================================================
 // Name        : banana_nav_node.cpp
 // Author      : Gabriel Earley and Justin Alabaster
-// Version     : #2.3 with improved formating and commenting
+// Version     : #3 with objects
 // Copyright   : Your copyright notice
 // Description : banana_nav_node(banana_nav executable)
 //==============================================================================
+#include <math.h>
+#include <stdlib.h>
+
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Float64.h"
-#include <banana_nav/banana_nav.h>
-#include <stdlib.h>
 #include <ros/console.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <move_base/move_base.h>
 #include <actionlib/client/simple_action_client.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/Twist.h>
-#include <math.h>
+
+#include <banana_nav/banana_nav.h>
+
+
 #include <sstream>
 #include <iostream>
+
 using namespace std;
 
 
@@ -37,8 +42,6 @@ typedef geometry_msgs::Pose pose; //Not needed right now but maybe in the future
 //variable used to store the local costmap from move_base
 occupancyGrid global_map;
 
-float relative_rotation;//Holds the relative rotation from starting axis
-
 //functions needed to read variables from topics
 void costmapCallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap)
 {
@@ -47,10 +50,6 @@ void costmapCallback(const nav_msgs::OccupancyGrid::ConstPtr& costmap)
 	global_map.header = costmap->header;
 }
 
-void rotationCallback(const std_msgs::Float64::ConstPtr& rel_rotation)
-{
-	relative_rotation=rel_rotation->data;
-}
 //////////////////////////////////////////////////////////////Main Function/////////////////////////////////////////
 
 int main(int argc, char** argv) {
@@ -69,12 +68,10 @@ int main(int argc, char** argv) {
 	//Object that allows banana_nav to subscribe to move_bases/local_costmap topic
 	ros::Subscriber subOGrid = banana_nav.subscribe("/move_base/local_costmap/costmap",1000,costmapCallback);
 
-	//Object that allows banana_nav to subscribe to /odometry/filtered topic
-	ros::Subscriber subBotRotation = banana_nav.subscribe("/ref_angle",1000,rotationCallback);
-
 	ros::Rate loop_rate(5); // 5Hz
 
 	Goal currentGoal(0,0,true); //custom message type to get goal from function
+	Goal* currentGoalptr = &currentGoal;
 
 	move_base_msgs::MoveBaseGoal goal; //message type to send goal to move_base
 
@@ -83,9 +80,6 @@ int main(int argc, char** argv) {
 	bool endofRow = false; //Set to true if we are at the end of the row and need to find new row
 
 	bool done = false; //Set to true if we have reached the end of the banana field
-
-	//direction gives the direction base_link is facing.
-	bool direction = true; //True means it is facing positive x and False means it is facing negative x
 
 	////////////////////////////////Take in inputs or go to defaults///////////////////////////////////////////////
 	//if-else statements are there if no inputs are given and implements default values
@@ -115,20 +109,6 @@ int main(int argc, char** argv) {
 	field_length = global_map.info.height;
 	field_width = global_map.info.width;
 
-	// initilize goal
-	goal.target_pose.header.frame_id = "base_link";
-	goal.target_pose.header.stamp = ros::Time::now();
-
-			//set the goals position
-	goal.target_pose.pose.position.x = 0;
-	goal.target_pose.pose.position.y = 0;
-	goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
-	goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
-	goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
-	goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
-
-
-
 	//Wait for Map to be Created
 while(field_length == 0 || field_width == 0){
 
@@ -140,11 +120,15 @@ while(field_length == 0 || field_width == 0){
 	ROS_INFO("Waiting on Local Cost Map"); //Waiting on Local Cost map error message
 	}
 
+	Banana_nav J5_BN(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution);
 
 	//Print out the size of the occupancy grid to see if it makes sense
 	ROS_INFO("The field length is %d",field_length);
 	ROS_INFO("The field width is %d",field_width);
-	ROS_INFO("The origin of the local map is located at x = %f and y = %f", global_map.info.origin.position.x,global_map.info.origin.position.y);
+
+	//for debug
+	//ROS_INFO("The origin of the local map is located at x = %f and y = %f", global_map.info.origin.position.x,global_map.info.origin.position.y);
+
 	//tell the action client that we want to spin a thread by default
 	MoveBaseClient ac("move_base",true);
 
@@ -157,6 +141,7 @@ while(field_length == 0 || field_width == 0){
 	while(~done){ //We run a switch until mission is completed. Thus it acts as a state machine
 
 		ros::spinOnce();//Get new map before next planing decision
+		J5_BN.map = global_map.data;
 
 		switch(endofRow){//We are either going down a row or going to next row
 
@@ -164,7 +149,7 @@ while(field_length == 0 || field_width == 0){
 
 		//Base_link is currently on a row
 		case false:
-			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution,relative_rotation); //obtain goal to send to move_base
+			endofRow = ~J5_BN.FindGoal(); //obtain goal to send to move_base
 
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
@@ -199,9 +184,10 @@ while(field_length == 0 || field_width == 0){
 
 			//Get updated costmap before determining if it is an end of a row
 			ros::spinOnce();
+			J5_BN.map = global_map.data;
 
 			//Check if we are at an end of a row
-			endofRow = ~FindGoal(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution,relative_rotation);
+			endofRow = ~J5_BN.FindGoal();
 			break;
 
 			//////////////////////////////Find Next Row////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +195,7 @@ while(field_length == 0 || field_width == 0){
 			//Need to find next row
 		case true:
 			//Add error check to FindRow
-			FindRow(currentGoal,global_map.data,field_length,field_width,direction,global_map.info.resolution,relative_rotation); //Find goal that lines us up with next row
+			J5_BN.FindRow(); //Find goal that lines us up with next row
 
 			// check that base_link is the right frame
 			goal.target_pose.header.frame_id = "base_link";
@@ -225,14 +211,14 @@ while(field_length == 0 || field_width == 0){
 				goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(M_PI).getY();
 				goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(M_PI).getZ();
 				goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(M_PI).getW();
-				direction = false;//base_link is now facing negative x
+				J5_BN.direction = false;//base_link is now facing negative x
 			}
 			else {
 				goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
 				goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
 				goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
 				goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
-				direction = true;//base link is now facing positive x
+				J5_BN.direction = true;//base link is now facing positive x
 			}
 
 			//Print current goal to terminal
@@ -267,9 +253,10 @@ while(field_length == 0 || field_width == 0){
 
 			//Get new map to check if done
 			ros::spinOnce();
+			J5_BN.map = global_map.data;
 
 			//check if there are no more rows of trees
-			done = CheckifDone(global_map.data, field_length, field_width,relative_rotation);
+			done = J5_BN.CheckifDone();
 			break;
 
 		default:
@@ -307,6 +294,8 @@ while(field_length == 0 || field_width == 0){
 		//goal failed -> end node
 		ROS_INFO("The J5 didn't go home. Error...Error...Error");
 	}
+	currentGoal.~Goal();
+	J5_BN.~Banana_nav();
 	return 0;
 }
 
