@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav_node.cpp
 // Author      : Gabriel Earley and Justin Alabaster
-// Version     : #3 with objects
+// Version     : #3.01 with objects
 // Copyright   : Your copyright notice
 // Description : banana_nav_node(banana_nav executable)
 //==============================================================================
@@ -120,6 +120,7 @@ while(field_length == 0 || field_width == 0){
 	ROS_INFO("Waiting on Local Cost Map"); //Waiting on Local Cost map error message
 	}
 
+	//Initialize Banana_nav object
 	Banana_nav J5_BN(currentGoal,global_map.data,field_length,field_width,global_map.info.resolution);
 
 	//Print out the size of the occupancy grid to see if it makes sense
@@ -190,7 +191,7 @@ while(field_length == 0 || field_width == 0){
 			endofRow = ~J5_BN.FindGoal();
 			break;
 
-			//////////////////////////////Find Next Row////////////////////////////////////////////////////////////////////////////////
+			//////////////////////////////Find Next Row///////////////////////////////////////////////////////////////////////////
 
 			//Need to find next row
 		case true:

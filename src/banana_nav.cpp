@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav.cpp
 // Author      : Gabriel Earley and Justin Alabaster
-// Version     : #3 with objects
+// Version     : #3.01 with objects
 // Copyright   : Your copyright notice
 // Description : banana_nav library
 //==============================================================================
@@ -19,17 +19,19 @@ typedef std::vector<int8_t> int8;
 
 int buffer = 95;//Determines what cost values are considered objects
 
-int frontFootPrintOffset = 60;//offset in cells
-int sideFootPrintOffset = 60;//offset in cells
+int frontFootPrintOffset = 60;//inter front offset in cells
+int sideFootPrintOffset = 60;//inter side offset in cells
 
+
+/////////////////////////Class Constructors and Destructors/////////////////////////////////////
 
 //Goal Constructor
 Goal::Goal(double goal_x, double goal_y, bool goal_orientation)
-	{
+{
 	this->x = goal_x;
 	this->y = goal_y;
 	this->orientation = goal_orientation;
-	}
+}
 
 //Goal Destuctor
 Goal::~Goal(){
@@ -37,19 +39,20 @@ Goal::~Goal(){
 
 
 //Banana_nav Constructor
-Banana_nav::Banana_nav(Goal& init_goal,int8 init_map, int init_m_x, int init_m_y, float init_resolution){
-this->currentGoal = &init_goal;
-this->m_x = init_m_x;
-this->m_y = init_m_y;
-this->map = init_map;
+Banana_nav::Banana_nav(Goal& init_goal,int8 init_map, int init_m_x, int init_m_y, float init_resolution)
+{	
+	this->currentGoal = &init_goal;
+	this->m_x = init_m_x;
+	this->m_y = init_m_y;
+	this->map = init_map;
 
-//direction gives the direction base_link is facing.
-//True means it is facing positive x and False means it is facing negative x
-this->direction = true;
+	//direction gives the direction base_link is facing.	
+	this->direction = true; //True means it is facing positive x and False means it is facing negative x
 
-this->resolution = init_resolution;
+	this->resolution = init_resolution;
 }
 
+//Banana_nav Destuctor
 Banana_nav::~Banana_nav(){
 };
 
@@ -65,7 +68,7 @@ int Banana_nav::GetCost(int width,int height)
 
 	int index = this->GetIndex(width,height);
 
-	//ROS_INFO("Value at index %d is %d", index, this.map[index]);//Used for Debug
+	//ROS_INFO("Value at index %d is %d", index, this->map[index]);//Used for Debug
 
 	if(index == -1) return -10; //return -10 if index is outside of range
 	else return this->map[index];
@@ -85,6 +88,8 @@ int Banana_nav::GetIndex(int width,int height)
 
 ///////////////////////////////////////////////////Public Methods///////////////////////////////////////////////////////////////
 
+
+/////////////////////////////////////////////Find Goal//////////////////////////////////////////////////////////
 
 //Finds the goal and returns if it found one or not
 bool Banana_nav::FindGoal(){
@@ -117,7 +122,7 @@ bool Banana_nav::FindGoal(){
 
 				//ROS_INFO("LTcost = %d",LTcost);//Used for Debug
 
-				//add in check if index is outside of map//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////add in check if index is outside of map//////////////////////////////////////
 				if ((LTcost > buffer) && (LTtrigger == false)){//found a lethal cost and haven't found one before this.									//lethal points are trees and it WILL NOT see last layers trees
 					LTtrigger = true;
 					LTLocatedHeight = height;
