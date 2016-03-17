@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav_node.cpp
 // Author      : Gabriel Earley and Justin Alabaster
-// Version     : #3.04 with objects
+// Version     : #3.07 with objects
 // Copyright   : Your copyright notice
 // Description : banana_nav_node(banana_nav executable)
 //==============================================================================
@@ -38,6 +38,7 @@ typedef geometry_msgs::Twist twist; //Not needed right now but maybe in the futu
 
 typedef geometry_msgs::Pose pose; //Not needed right now but maybe in the future
 
+float forwardCheck = 1.2;//Used to inch forward and verify 
 
 //variable used to store the local costmap from move_base
 occupancyGrid global_map;
@@ -80,6 +81,18 @@ int main(int argc, char** argv) {
 	bool endofRow = false; //Set to true if we are at the end of the row and need to find new row
 
 	bool done = false; //Set to true if we have reached the end of the banana field
+
+	// check that base_link is the right frame
+	goal.target_pose.header.frame_id = "base_link";
+	goal.target_pose.header.stamp = ros::Time::now();
+
+	//set the goals position
+	goal.target_pose.pose.position.x = 0;
+	goal.target_pose.pose.position.y = 0;			
+	goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
+	goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
+	goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
+	goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
 
 	////////////////////////////////Take in inputs or go to defaults///////////////////////////////////////////////
 	//if-else statements are there if no inputs are given and implements default values
@@ -137,8 +150,6 @@ while(field_length == 0 || field_width == 0){
 
 	//Main process of main
 
-
-
 	while(!done){ //We run a switch until mission is completed. Thus it acts as a state machine
 
 		ros::spinOnce();//Get new map before next planing decision
@@ -159,14 +170,8 @@ while(field_length == 0 || field_width == 0){
 			//set the goals position
 			goal.target_pose.pose.position.x = currentGoal.x;
 			goal.target_pose.pose.position.y = currentGoal.y;			
-			goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
-			goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
-			goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
-			goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
-			
 
 			ROS_INFO("Sending goal x = %f and y = %f",currentGoal.x,currentGoal.y); //Print current goal to terminal
-
 
 			while(!ac.waitForServer(ros::Duration(5.0)))
 			{
@@ -193,13 +198,44 @@ while(field_length == 0 || field_width == 0){
 			J5_BN.map = global_map.data;
 
 			//Check if we are at an end of a row
-			endofRow = !J5_BN.FindGoal();
+			endofRow = !J5_BN.FindGoal();		
+	
+			//This is block moves the bot forward to check if we are really at the end of a row
+			if(endofRow == true){//Check if there is a gap in the tree field
+
+			// check that base_link is the right frame
+			goal.target_pose.header.frame_id = "base_link";
+			goal.target_pose.header.stamp = ros::Time::now();
+
+			//set the goals position
+			goal.target_pose.pose.position.x = forwardCheck;//Move foward forwardCheck amount
+			goal.target_pose.pose.position.y = 0;
+			
+			ac.sendGoal(goal); //send goal to move_base
+			ac.waitForResult(); //Wait for goal to be completed
+
+			//Check if goal was successful.
+			if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
+				ROS_INFO("Hooray, J5 moved foward.");
+				endofRow = false;
+			}
+			else{  //goal failed -> end node
+				ROS_INFO("The J5 didn't go foward. Error...Error...Error");
+				done = true;
+				return 0; //ends node
+			}
+
+			}
+
+			endofRow = endofRow = !J5_BN.FindGoal();
+
 			break;
 
 			//////////////////////////////Find Next Row///////////////////////////////////////////////////////////////////////////
 
 			//Need to find next row
 		case true:
+			
 			//Add error check to FindRow
 			J5_BN.FindRow(); //Find goal that lines us up with next row
 

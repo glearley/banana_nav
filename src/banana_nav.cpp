@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav.cpp
 // Author      : Gabriel Earley and Justin Alabaster
-// Version     : #3.04 with objects
+// Version     : #3.07 with objects
 // Copyright   : Your copyright notice
 // Description : banana_nav library
 //==============================================================================
@@ -19,8 +19,9 @@ typedef std::vector<int8_t> int8;
 
 int buffer = 95;//Determines what cost values are considered objects
 
-int frontFootPrintOffset = 60;//inter front offset in cells
-int sideFootPrintOffset = 60;//inter side offset in cells
+int frontFootPrintOffset = 60;//interiar front offset in cells
+int sideFootPrintOffset = 60;//interiar side offset in cells
+float robotFootPrint = .765;//Robot foot print in meters
 
 
 /////////////////////////Class Constructors and Destructors/////////////////////////////////////
@@ -131,8 +132,6 @@ bool Banana_nav::FindGoal(){
 
 		}
 		for(width = halfWidth+sideFootPrintOffset; width <= maxWidth;width++){//search for the closet tree/obstacle to the right of the base_link
-
-			if(width>halfWidth){ //Find first tree on right side of base_link
 				RTcost = this->GetCost(width,height);
 
 				//ROS_INFO("RTcost = %d",RTcost);//Used for Debug
@@ -142,20 +141,35 @@ bool Banana_nav::FindGoal(){
 					RTLocatedHeight = height;
 					RTLocatedWidth = width;
 				}
-			}
 		}
 	}
 
 	//Return false if no trees and sets goal to 0,0
-	if(RTtrigger == false || LTtrigger == false){//Check if there are no trees
+	if(RTtrigger == false && LTtrigger == false){//Checks if there are no trees
 
-		ROS_INFO("I messed UP");//Displays if we don't see both trees
-		if(LTtrigger)ROS_INFO("LT trigger is true");//Displays if we see tree on left side
-		if(RTtrigger)ROS_INFO("RT trigger is true");//Displays if we see tree on right side
-
+		ROS_INFO("I see no trees");//Displays if we don't see both trees
 		this->currentGoal->y = 0;
 		this->currentGoal->x = 0;
 		return false;
+	}
+
+	//Return true if their is 1 tree to the left and sets goal to be at its height and its width is a distance of 1.5 times the robots footprint
+	if(RTtrigger == false && LTtrigger == true){//Checks if there is one tree to the left
+
+		ROS_INFO("I see 1 tree to my left");//Displays conformation message
+		this->currentGoal->y = -this->resolution*(LTLocatedWidth-maxWidth/2) - 1.5*robotFootPrint;
+		this->currentGoal->x = this->resolution*(LTLocatedHeight-maxHeight/2);
+		return true;
+	}
+
+	//Return true if their is 1 tree to the right and sets goal to be at its height and its width is a distance of 1.5 times the robots footprint
+	if(RTtrigger == true && LTtrigger == false){//Checks if there is one tree to the right
+
+		ROS_INFO("I see 1 tree to my right");//Displays conformation message
+
+		this->currentGoal->y = -this->resolution*(RTLocatedWidth-maxWidth/2) + 1.5*robotFootPrint;
+		this->currentGoal->x = this->resolution*(RTLocatedHeight-maxHeight/2);
+		return true;
 	}
 
 	//Return true, we have found two trees and have a goal
@@ -168,7 +182,7 @@ bool Banana_nav::FindGoal(){
 		float MLTLocatedHeight = this->resolution*(LTLocatedHeight-maxHeight/2);
 
 		//Displays if we see trees
-		ROS_INFO("I did the right thing \n right trigger is at height %f and width %f and left trigger is at height %f and width %f",MRTLocatedHeight,MRTLocatedWidth,MLTLocatedHeight,MLTLocatedWidth);
+		ROS_INFO("I see two trees \n right trigger is at height %f and width %f and left trigger is at height %f and width %f",MRTLocatedHeight,MRTLocatedWidth,MLTLocatedHeight,MLTLocatedWidth);
 
 		//Sets the goal points based how the center of the local map which is the location of the base_link
 		this->currentGoal->y = this->resolution*(-1*((RTLocatedWidth + LTLocatedWidth)/2 - (maxWidth/2)));//negative because Y to the left is positive
