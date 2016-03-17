@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : banana_nav.cpp
 // Author      : Gabriel Earley and Justin Alabaster
-// Version     : #3.01 with objects
+// Version     : #3.04 with objects
 // Copyright   : Your copyright notice
 // Description : banana_nav library
 //==============================================================================
@@ -176,7 +176,6 @@ bool Banana_nav::FindGoal(){
 
 		//ROS_INFO("goal is at x = %f and y = %f",currentGoal.x,currentGoal.y); //Used for Debug
 		return true;
-
 	}
 }
 
