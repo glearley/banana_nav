@@ -159,21 +159,11 @@ while(field_length == 0 || field_width == 0){
 			//set the goals position
 			goal.target_pose.pose.position.x = currentGoal.x;
 			goal.target_pose.pose.position.y = currentGoal.y;			
-
-			if(currentGoal.orientation){//Turns base_link around to look for trees depending on direction
-
-				goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(M_PI).getX();
-				goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(M_PI).getY();
-				goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(M_PI).getZ();
-				goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(M_PI).getW();
-			}
-			else {
-				goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
-				goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
-				goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
-				goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
-
-			}
+			goal.target_pose.pose.orientation.x = tf::createQuaternionFromYaw(0).getX();
+			goal.target_pose.pose.orientation.y = tf::createQuaternionFromYaw(0).getY();
+			goal.target_pose.pose.orientation.z = tf::createQuaternionFromYaw(0).getZ();
+			goal.target_pose.pose.orientation.w = tf::createQuaternionFromYaw(0).getW();
+			
 
 			ROS_INFO("Sending goal x = %f and y = %f",currentGoal.x,currentGoal.y); //Print current goal to terminal
 
