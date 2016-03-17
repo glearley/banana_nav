@@ -1,0 +1,7 @@
+<launch>
+ <node name ="banana_nav" pkg="banana_nav_node" type="banana_nav" output="screen">
+
+  
+
+ </node>
+</launch>
