@@ -12,6 +12,7 @@
 
 typedef std::vector<int8_t> int8;
 
+
 //custom class to hold goal before sending it to move_base
 //Members: x,y, orientation give location of goal relative to base_link
 //Members: done tells if path planning is over and if it needs to head back to home
@@ -28,7 +29,6 @@ public:
 class Banana_nav{
 public:
 	Goal* currentGoal;//currentGoal is the object the goal's coordinates are stored in
-	
 	
 	int m_x,m_y;//max_x, max_y are bounds of map.
 	
@@ -52,15 +52,21 @@ public:
 	//determines if we are done and need to return to base
 	bool CheckifDone();
 
+	void UpdateMap(const map_msgs::OccupancyGridUpdate& msg);
+
 private:
-	//function to get cost from occupancy grid given coordinates
+	//method to get cost from occupancy grid given coordinates
 	//Param: width ,height is the location of point you want the cost of
 	int GetCost(int width, int height);
 
-	//function to get index from occupancy grid given coordinates
+	//method to get index from occupancy grid given coordinates
 	//Param: width ,height is the location of point you want index of
 	int GetIndex(int width, int height);
 
+	//method to check whether an obstacle is a tree
+	//Param: width ,height is the location of point you want to start the tree check
+	bool TreeCheckRight(int width,int height);
+	bool TreeCheckLeft(int width,int height);
 };
 
 #endif /* BANANA_NAV_H_ */
